@@ -14,10 +14,9 @@
             min-height: 100vh;
             margin: 0;
             padding: 0;
-            background-color: #111; /* Arkada siyah bir fon kalsın garanti olsun */
+            background-color: #111; /* Siyah arka plan (resim sığdığında alt/üst boşluklar bu renk olacak) */
         }
 
-        /* 🚀 SİHİRLİ HİLE: Arka planı sahte bir katmana koyup en arkaya (z-index: -1) itiyoruz */
         body::before {
             content: "";
             position: fixed;
@@ -28,8 +27,16 @@
             background-image: url('/static/arkaplan.jpg');
             background-position: center center;
             background-repeat: no-repeat;
-            background-size: cover;
+            background-size: cover; /* Bilgisayarlar için ekranı tam kaplama (sağdan soldan kesebilir) */
             z-index: -1; 
+        }
+
+        /* 📱 TELEFONLAR İÇİN "HİÇBİR YERİ KESME" KALKANI */
+        @media (max-width: 768px) {
+            body::before {
+                background-size: contain; /* Resmi kesmek yerine tamamını ekrana küçülterek sığdırır */
+                background-position: top center; /* Resmi ekranın en üstüne hizalar */
+            }
         }
 
         .container {
@@ -41,6 +48,7 @@
             width: 90%;
             max-width: 350px;
             box-sizing: border-box;
+            margin-top: 20px; /* Form çok yukarı yapışmasın diye boşluk */
         }
         h2 {
             text-align: center;
