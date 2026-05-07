@@ -1,8 +1,26 @@
 from flask import Flask, render_template, request
 import joblib
 import numpy as np
+import sqlite3
 
 app = Flask(__name__)
+
+# 1. VERİTABANI BAŞLATMA
+def init_db():
+    conn = sqlite3.connect('tahminler.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS sonuclar
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  kda REAL,
+                  damage REAL,
+                  headshots REAL,
+                  assists REAL,
+                  tahmin TEXT,
+                  tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+init_db()
 
 try:
     model = joblib.load('valorant_model.pkl')
@@ -18,14 +36,12 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
-        # Kullanıcının girdiği 1 maçlık normal verileri alıyoruz
         kda = float(request.form['kda'])
         damage = float(request.form['damage'])
         headshots = float(request.form['headshots'])
         assists = float(request.form['assists'])
         
-        # 💡 TEK MAÇLIK KURAL MOTORU (Kullanıcı Dostu Çözüm)
-        # Kullanıcı tamamen tek maçlık skorlar girdiğinde çalışacak net sınırlar:
+        # Tek maçlık kural motoru
         if damage >= 4000 and kda >= 1.5:
             tahmin_edilen_rank = "Immortal 3"
         elif damage >= 3000 and kda >= 1.2:
@@ -37,7 +53,6 @@ def predict():
         elif damage >= 500:
             tahmin_edilen_rank = "Bronze 2"
         else:
-            # Değerler gerçekten çok düşükse model ne diyorsa o (Muhtemelen Iron)
             if model and scaler:
                 veriler = np.array([[kda, damage * 150, headshots * 150, assists]])
                 veriler_scaled = scaler.transform(veriler)
@@ -45,7 +60,25 @@ def predict():
             else:
                 tahmin_edilen_rank = "Iron 1"
         
+        # 2. VERİTABANINA KAYIT
+        conn = sqlite3.connect('tahminler.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO sonuclar (kda, damage, headshots, assists, tahmin) VALUES (?, ?, ?, ?, ?)",
+                  (kda, damage, headshots, assists, tahmin_edilen_rank))
+        conn.commit()
+        conn.close()
+        
         return render_template('index.html', tahmin=tahmin_edilen_rank)
+
+# 3. YÖNETİCİ PANELİ (GİZLİ SAYFA)
+@app.route('/admin')
+def admin():
+    conn = sqlite3.connect('tahminler.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM sonuclar ORDER BY id DESC")
+    veriler = c.fetchall()
+    conn.close()
+    return render_template('admin.html', veriler=veriler)
 
 if __name__ == '__main__':
     app.run(debug=True)
