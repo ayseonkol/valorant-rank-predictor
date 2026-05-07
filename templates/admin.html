@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli - Tahmin Kayıtları</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #fff;
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        h2 { color: #ff4655; text-align: center; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #1f2326;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 12px;
+            text-align: left;
+        }
+        th { background-color: #ff4655; color: white; }
+        tr:nth-child(even) { background-color: #2a2e31; }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #ff4655;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">← Ana Sayfaya Dön</a>
+    <h2>Sistemdeki Tüm Tahmin Kayıtları</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>KDA</th>
+                <th>Hasar</th>
+                <th>Headshot</th>
+                <th>Asist</th>
+                <th>Tahmin Edilen Rütbe</th>
+                <th>Tarih</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for veri in veriler %}
+            <tr>
+                <td>{{ veri[0] }}</td>
+                <td>{{ veri[1] }}</td>
+                <td>{{ veri[2] }}</td>
+                <td>{{ veri[3] }}</td>
+                <td>{{ veri[4] }}</td>
+                <td><strong>{{ veri[5] }}</strong></td>
+                <td>{{ veri[6] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
