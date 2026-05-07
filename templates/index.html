@@ -6,30 +6,39 @@
     <title>Valorant Rütbe Tahmin Sistemi</title>
     <style>
         body {
-            background-image: url('/static/arkaplan.jpg'); /* Resmimizi çağırıyoruz */
-            background-position: center center;  /* Resmi tam merkeze sabitle */
-            background-repeat: no-repeat;        /* Resmin tekrar etmesini engelle */
-            background-attachment: fixed;        /* Ekranı kaydırırken resim sabit kalsın */
-            background-size: cover;              /* Ekranın boyutuna göre kendini otomatik ayarla */
+            background-image: url('/static/arkaplan.jpg');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-attachment: fixed; /* Bilgisayarlar için arka planı sabitler */
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;                   /* Mobil tarayıcılar için en az %100 yükseklik */
+            min-height: 100vh;
             margin: 0;
             padding: 0;
         }
+
+        /* 📱 TELEFONLAR İÇİN ÖZEL KALKAN (Sihirli Kısım) */
+        @media (max-width: 768px) {
+            body {
+                background-attachment: scroll; /* Mobildeki o iğrenç zoom hatasını çözer */
+            }
+            .container {
+                width: 90%; /* Kutuyu telefonda daraltıp şık gösterir */
+            }
+        }
+
         .container {
-            background-color: rgba(31, 35, 38, 0.9); /* Arka planı biraz şeffaf yaptık resim görünsün diye */
+            background-color: rgba(31, 35, 38, 0.9);
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(255, 70, 85, 0.3);
             border-top: 5px solid #ff4655;
-            /* MOBİL UYUM (RESPONSIVE) KISMI: */
-            width: 90%;          /* Ekran daralırsa %90'ını kapla (kenarlardan şık boşluk bırak) */
-            max-width: 350px;    /* Ama ekran ne kadar büyük olursa olsun 350px'i geçme */
-            box-sizing: border-box; /* Padding'in genişliği bozmasını engelle */
+            width: 350px;
+            box-sizing: border-box;
         }
         h2 {
             text-align: center;
