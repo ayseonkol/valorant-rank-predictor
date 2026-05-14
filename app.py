@@ -92,7 +92,7 @@ def predict():
 def admin():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM sonuclar ORDER BY id DESC")
+    cur.execute("SELECT id, kda, damage, headshots, assists, tahmin, TO_CHAR(tarih, 'DD.MM.YYYY HH24:MI') FROM sonuclar ORDER BY id DESC")
     veriler = cur.fetchall()
     cur.close()
     conn.close()
