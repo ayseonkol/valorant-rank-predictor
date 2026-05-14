@@ -4,6 +4,7 @@ import numpy as np
 import psycopg2 # sqlite3 yerine bunu kullanıyoruz
 from psycopg2.extras import RealDictCursor
 import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -75,12 +76,17 @@ def predict():
             else:
                 tahmin_edilen_rank = "Iron 1"
         
+        # --- SAAT DÜZELTMESİ BURADA YAPILDI ---
+        # Türkiye saati için UTC'ye 3 saat ekliyoruz
+        turkiye_saati = datetime.utcnow() + timedelta(hours=3)
+        
         # 3. VERİTABANINA KAYDETME (PostgreSQL)
-        # Soru işaretleri (?) yerine %s kullanıyoruz
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("INSERT INTO sonuclar (kda, damage, headshots, assists, tahmin) VALUES (%s, %s, %s, %s, %s)",
-                  (kda, damage, headshots, assists, tahmin_edilen_rank))
+        
+        # 'tarih' sütununu da ekledik ve o değişkene 'turkiye_saati'ni atadık
+        cur.execute("INSERT INTO sonuclar (kda, damage, headshots, assists, tahmin, tarih) VALUES (%s, %s, %s, %s, %s, %s)",
+                  (kda, damage, headshots, assists, tahmin_edilen_rank, turkiye_saati))
         conn.commit()
         cur.close()
         conn.close()
