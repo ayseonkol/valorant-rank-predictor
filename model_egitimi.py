@@ -45,7 +45,7 @@ X_test_scaled = scaler.transform(X_test)
 
 # 7. KNN Modelini Eğitme
 print("Yapay zeka modeli harf hassasiyeti düzeltilerek yeniden eğitiliyor...")
-model = KNeighborsClassifier(n_neighbors=5)
+model = KNeighborsClassifier(n_neighbors=11)
 model.fit(X_train_scaled, y_train)
 
 # Başarı Oranını Görme
