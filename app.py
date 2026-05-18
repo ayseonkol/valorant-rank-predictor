@@ -1,108 +1,127 @@
+import os
+import sqlite3
+import psycopg2
 from flask import Flask, render_template, request
 import joblib
-import numpy as np
-import psycopg2 # sqlite3 yerine bunu kullanıyoruz
-from psycopg2.extras import RealDictCursor
-import os
-from datetime import datetime, timedelta
+import pandas as pd
 
 app = Flask(__name__)
 
-# 1. RENDER'DAN KOPYALADIĞIN "EXTERNAL DATABASE URL"Yİ BURAYA YAPIŞTIR
-DB_URL = "postgresql://valorant_db_ppak_user:Ll2ZyqgZjpcE6afzaOgAlWbYn9jRirVz@dpg-d82q81ojs32c7381d3cg-a.frankfurt-postgres.render.com/valorant_db_ppak"
+# Modeli yükle
+model = joblib.load("hantavirus_modeli.pkl")
 
-# VERİTABANI BAĞLANTI FONKSİYONU
+
+# 1. VERİTABANI BAĞLANTI FONKSİYONU
 def get_db_connection():
-    # Artık dosya adına değil, internetteki adrese bağlanıyoruz
-    conn = psycopg2.connect(DB_URL)
+    # Eğer Render üzerindeysek DATABASE_URL çevresel değişkeni otomatik dolu olur
+    db_url = os.environ.get('DATABASE_URL')
+    
+    if db_url:
+        # RENDER / POSTGRESQL BAĞLANTISI
+        conn = psycopg2.connect(db_url)
+    else:
+        # BİLGİSAYARINIZ / SQLITE BAĞLANTISI
+        conn = sqlite3.connect('hantavirus_sonuclar.db')
+        
     return conn
 
-# 2. VERİTABANI BAŞLATMA FONKSİYONU (PostgreSQL Sürümü)
+
+# 2. TABLO OLUŞTURMA FONKSİYONU
 def init_db():
     conn = get_db_connection()
-    cur = conn.cursor()
-    # SQLite'daki 'AUTOINCREMENT' yerine PostgreSQL'de 'SERIAL' kullanılır.
-    cur.execute('''CREATE TABLE IF NOT EXISTS sonuclar
-                 (id SERIAL PRIMARY KEY,
-                  kda FLOAT,
-                  damage FLOAT,
-                  headshots FLOAT,
-                  assists FLOAT,
-                  tahmin TEXT,
-                  tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+    cursor = conn.cursor()
+    
+    # Kodun nerede çalıştığına göre ID yapısını ayarlıyoruz (Hatasız çalışması için)
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        id_text = "id SERIAL PRIMARY KEY"
+    else:
+        id_text = "id INTEGER PRIMARY KEY AUTOINCREMENT"
+        
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS tahminler (
+            {id_text},
+            yas INTEGER,
+            cinsiyet TEXT,
+            semptom_sayisi INTEGER,
+            sonuc TEXT,
+            tarih TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
-    cur.close()
+    cursor.close()
     conn.close()
 
-# Uygulama açılırken tabloyu hazırla
+# Uygulama her başladığında veritabanı tablosunu hazırla
 init_db()
 
-# Modelleri yükleme
-try:
-    model = joblib.load('valorant_model.pkl')
-    scaler = joblib.load('valorant_scaler.pkl')
-except:
-    model = None
-    scaler = None
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
+
 @app.route('/predict', methods=['POST'])
 def predict():
-    if request.method == 'POST':
-        kda = float(request.form['kda'])
-        damage = float(request.form['damage'])
-        headshots = float(request.form['headshots'])
-        assists = float(request.form['assists'])
-        
-        # Basit kural motoru
-        if damage >= 4000 and kda >= 1.5:
-            tahmin_edilen_rank = "Immortal 3"
-        elif damage >= 3000 and kda >= 1.2:
-            tahmin_edilen_rank = "Diamond 2"
-        elif damage >= 2000 and kda >= 1.0:
-            tahmin_edilen_rank = "Gold 1"
-        elif damage >= 1200 and kda >= 0.8:
-            tahmin_edilen_rank = "Silver 2"
-        elif damage >= 500:
-            tahmin_edilen_rank = "Bronze 2"
+    try:
+        # Form verilerini al
+        age = int(request.form['Age'])
+        gender = request.form['Gender']
+        symptoms_list = request.form.getlist('symptoms')
+        symptom_count = len(symptoms_list)
+        gender_m = 1 if gender == 'M' else 0
+
+        # Model için veri çerçevesi oluştur
+        input_data = pd.DataFrame([[age, symptom_count, gender_m]], 
+                                  columns=['Age', 'Symptom_Count', 'Gender_M'])
+
+        # Modelden tahmin al
+        prediction = model.predict(input_data)
+
+        # 3 altı/4 üstü kuralın ve sonuç metinlerin
+        if symptom_count <= 3:
+            result = "Hantavirüs NEGATİF (Düşük Risk)" 
         else:
-            if model and scaler:
-                veriler = np.array([[kda, damage * 150, headshots * 150, assists]])
-                veriler_scaled = scaler.transform(veriler)
-                tahmin_edilen_rank = model.predict(veriler_scaled)[0]
-            else:
-                tahmin_edilen_rank = "Iron 1"
-        
-        # --- SAAT DÜZELTMESİ BURADA YAPILDI ---
-        # Türkiye saati için UTC'ye 3 saat ekliyoruz
-        turkiye_saati = datetime.utcnow() + timedelta(hours=3)
-        
-        # 3. VERİTABANINA KAYDETME (PostgreSQL)
+            result = "Hantavirüs POZİTİF (Yüksek Risk)"
+
+        prediction_text = f'Tahmin Sonucu: {result}'
+
+        if gender == 'M':
+            cinsiyet_turkce = "Erkek"
+        elif gender == 'F':
+            cinsiyet_turkce = "Kadın"
+        else:
+            cinsiyet_turkce = gender
+
+
+        # 3. VERİTABANINA KAYDETME
         conn = get_db_connection()
-        cur = conn.cursor()
+        cursor = conn.cursor()
         
-        # 'tarih' sütununu da ekledik ve o değişkene 'turkiye_saati'ni atadık
-        cur.execute("INSERT INTO sonuclar (kda, damage, headshots, assists, tahmin, tarih) VALUES (%s, %s, %s, %s, %s, %s)",
-                  (kda, damage, headshots, assists, tahmin_edilen_rank, turkiye_saati))
+        db_url = os.environ.get('DATABASE_URL')
+        if db_url:
+            # Render/PostgreSQL için sorgu kalıbı
+            query = "INSERT INTO tahminler (yas, cinsiyet, semptom_sayisi, sonuc) VALUES (%s, %s, %s, %s)"
+        else:
+            # Bilgisayar/SQLite için sorgu kalıbı
+            query = "INSERT INTO tahminler (yas, cinsiyet, semptom_sayisi, sonuc) VALUES (?, ?, ?, ?)"
+            
+        cursor.execute(query, (age, cinsiyet_turkce, symptom_count, prediction_text))
+        
         conn.commit()
-        cur.close()
+        cursor.close()
         conn.close()
-        
-        return render_template('index.html', tahmin=tahmin_edilen_rank)
+        print("✓ Veri tabanına başarıyla kaydedildi!")
 
-# 4. YÖNETİCİ PANELİ
-@app.route('/admin')
-def admin():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, kda, damage, headshots, assists, tahmin, TO_CHAR(tarih, 'DD.MM.YYYY HH24:MI') FROM sonuclar ORDER BY id DESC")
-    veriler = cur.fetchall()
-    cur.close()
-    conn.close()
-    return render_template('admin.html', veriler=veriler)
+    except Exception as e:
+        print("X Veri tabanı işlemi sırasında hata oluştu:", e)
+        # Eğer bir hata olursa formun çökmemesi için yedek mesaj
+        prediction_text = "Sistemde bir hata oluştu, lütfen tekrar deneyin."
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    return render_template('index.html', prediction_text=prediction_text)
+
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
