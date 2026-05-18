@@ -3,144 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valorant Rütbe Tahmin Sistemi</title>
+    <title>Hantavirüs Teşhis Analizi</title>
     <style>
-        body {
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            background-color: #111; /* Siyah arka plan (resim sığdığında alt/üst boşluklar bu renk olacak) */
-        }
-
-        body::before {
-            content: "";
+        /* MOBİLDE RESMİN DÜZGÜN DURMASINI SAĞLAYAN ÖZEL KATMAN */
+        .arka-plan-katmani {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-image: url('/static/arkaplan.jpg');
-            background-position: center center;
+            width: 100%;
+            height: 100%;
+            /* Arka plan resmin /static/arka-plan.jpg olarak kalmalı */
+            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), 
+                        url('/static/arka-plan.jpg');
+            background-size: cover;
+            background-position: center;
             background-repeat: no-repeat;
-            background-size: cover; /* Bilgisayarlar için ekranı tam kaplama (sağdan soldan kesebilir) */
-            z-index: -1; 
+            z-index: -1; /* İçeriğin arkasında kalması için */
         }
 
-        /* 📱 TELEFONLAR İÇİN "HİÇBİR YERİ KESME" KALKANI */
-        @media (max-width: 768px) {
-            body::before {
-                background-size: contain; /* Resmi kesmek yerine tamamını ekrana küçülterek sığdırır */
-                background-position: top center; /* Resmi ekranın en üstüne hizalar */
-            }
-        }
-
-        .container {
-            background-color: rgba(31, 35, 38, 0.9);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(255, 70, 85, 0.3);
-            border-top: 5px solid #ff4655;
-            width: 90%;
-            max-width: 350px;
-            box-sizing: border-box;
-            margin-top: 20px; /* Form çok yukarı yapışmasın diye boşluk */
-        }
-        h2 {
-            text-align: center;
-            color: #ff4655;
-            margin-bottom: 25px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #ccc;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #444;
-            background-color: #2a2e31;
-            color: #fff;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        input:focus {
-            border-color: #ff4655;
-            outline: none;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #ff4655;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            margin-top: 10px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #d63643;
-        }
-        .result {
-            margin-top: 20px;
+        body { 
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             padding: 15px;
-            background-color: #2a2e31;
-            border-left: 4px solid #ff4655;
-            text-align: center;
-            border-radius: 4px;
+            box-sizing: border-box;
         }
-        .rank-text {
-            color: #ff4655;
-            font-size: 20px;
-            font-weight: bold;
+
+        .container { 
+            max-width: 480px; 
+            width: 100%;
+            background: rgba(255, 255, 255, 0.96); 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+            box-sizing: border-box;
+        }
+
+        h2 { 
+            color: #d32f2f; 
+            text-align: center; 
+            margin-bottom: 25px; 
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 22px;
+        }
+
+        .input-group { margin-bottom: 18px; }
+        
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; font-size: 14px; }
+
+        input[type="number"], select { 
+            width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 10px; 
+            box-sizing: border-box; font-size: 15px; background: #fff;
+        }
+
+        .symptoms-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            background: #f9f9f9; 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid #eee;
+        }
+
+        .symptom-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #444; }
+
+        button { 
+            width: 100%; background: #d32f2f; color: white; padding: 15px; border: none; 
+            border-radius: 10px; margin-top: 20px; cursor: pointer; font-size: 16px; 
+            font-weight: bold; transition: 0.3s;
+        }
+
+        button:hover { background: #b71c1c; transform: scale(1.02); }
+
+        .result-box { 
+            margin-top: 25px; padding: 18px; border-radius: 12px; text-align: center; 
+            font-size: 17px; font-weight: bold;
+        }
+
+        .positive { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .negative { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+        /* MOBİL TELEFONLAR İÇİN DOKUNUŞ */
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .symptoms-grid { grid-template-columns: 1fr; } /* Mobilde semptomlar alt alta */
+            h2 { font-size: 18px; }
         }
     </style>
 </head>
 <body>
+    <div class="arka-plan-katmani"></div>
 
-<div class="container">
-    <h2>Rank Predictor</h2>
-    <form action="/predict" method="POST">
-        <div class="form-group">
-            <label>KDA Oranı (Örn: 1.25):</label>
-            <input type="number" step="0.01" name="kda" required>
-        </div>
-        <div class="form-group">
-            <label>Toplam Hasar (Damage):</label>
-            <input type="number" name="damage" required>
-        </div>
-        <div class="form-group">
-            <label>Kafadan Vurma (Headshots):</label>
-            <input type="number" name="headshots" required>
-        </div>
-        <div class="form-group">
-            <label>Asist Sayısı (Assists):</label>
-            <input type="number" name="assists" required>
-        </div>
-        <button type="submit">Rütbeyi Tahmin Et</button>
-    </form>
+    <div class="container">
+        <h2>Hantavirüs Analizi</h2>
+        <form action="/predict" method="post">
+            <div class="input-group">
+                <label>Hasta Yaşı:</label>
+                <input type="number" name="Age" placeholder="Yaş giriniz" required min="1">
+            </div>
+            
+            <div class="input-group">
+                <label>Cinsiyet:</label>
+                <select name="Gender" required>
+                    <option value="" disabled selected>Seçiniz...</option>
+                    <option value="M">Erkek</option>
+                    <option value="F">Kadın</option>
+                </select>
+            </div>
 
-    {% if tahmin %}
-    <div class="result">
-        Tahmin Edilen Rütbe:<br>
-        <span class="rank-text">{{ tahmin }}</span>
+            <div class="input-group">
+                <label>Belirtiler:</label>
+                <div class="symptoms-grid">
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Fever"> Ateş</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Muscle Aches"> Kas Ağrısı</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Fatigue"> Halsizlik</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Headache"> Baş Ağrısı</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Nausea"> Mide Bulantısı</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Abdominal Pain"> Karın Ağrısı</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Cough"> Öksürük</div>
+                    <div class="symptom-item"><input type="checkbox" name="symptoms" value="Breath"> Nefes Darlığı</div>
+                </div>
+            </div>
+
+            <button type="submit">Analizi Başlat</button>
+        </form>
+
+        {% if prediction_text %}
+            <div class="result-box {% if 'POZİTİF' in prediction_text %}positive{% else %}negative{% endif %}">
+                {{ prediction_text }}
+            </div>
+        {% endif %}
     </div>
-    {% endif %}
-</div>
-
 </body>
 </html>
